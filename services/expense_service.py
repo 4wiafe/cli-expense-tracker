@@ -25,5 +25,6 @@ class ExpenseService:
 
     def delete_expense(self, expense_id):
         self.expenses = [exp for exp in self.expenses if exp.id != expense_id]
+        self.storage.save(self.expenses)
 
         return self.expenses

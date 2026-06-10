@@ -9,7 +9,7 @@ class Expense:
         self.category = category
         self.description = description
         self.amount = amount
-        self.created_at = datetime.now()
+        self.created_at = str(datetime.now())
 
     def to_dict(self):
         return {

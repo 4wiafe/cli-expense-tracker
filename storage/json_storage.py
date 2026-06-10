@@ -16,4 +16,4 @@ class JsonStorage:
 
     def save(self, expenses):
         with open(self.file_path, "w") as file:
-            json.dump([expense.to_dict for expense in expenses], file, indent=4)
+            json.dump([expense.to_dict() for expense in expenses], file, indent=4)
