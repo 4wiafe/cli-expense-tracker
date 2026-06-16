@@ -24,18 +24,30 @@ class Reports:
 
     def highest_expense_category(self):
         expenses = self.storage.load()
-        amounts = []
+        highest_expense = expenses[0]
 
         for expense in expenses:
-            amounts.append(expense.amount)
+            if expense.amount > highest_expense.amount:
+                highest_expense = expense
 
-        return f"{max(amounts) / 100:.2f}"
+        return {
+            "id": highest_expense.id,
+            "date": highest_expense.date,
+            "category": highest_expense.category,
+            "amount": f"{highest_expense.amount / 100:.2f}",
+        }
 
     def lowest_expense_cateory(self):
         expenses = self.storage.load()
-        amounts = []
+        highest_expense = expenses[0]
 
         for expense in expenses:
-            amounts.append(expense.amount)
+            if expense.amount < highest_expense.amount:
+                highest_expense = expense
 
-        return f"{min(amounts) / 100:.2f}"
+        return {
+            "id": highest_expense.id,
+            "date": highest_expense.date,
+            "category": highest_expense.category,
+            "amount": f"{highest_expense.amount / 100:.2f}",
+        }
