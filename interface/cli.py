@@ -49,8 +49,8 @@ def run_cli():
         elif choice == "3":
             print("1. View total expenses")
             print("2. View total by category")
-            print("3. View highest expense")
-            print("4. View Lowest expense")
+            print("3. View category with highest expense")
+            print("4. View category with lowest expense")
 
             summary_choice = input("Select an option: ")
 
