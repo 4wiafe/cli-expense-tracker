@@ -24,30 +24,28 @@ class Reports:
 
     def highest_expense_category(self):
         expenses = self.storage.load()
-        highest_expense = expenses[0]
+        categories_total = {}
 
         for expense in expenses:
-            if expense.amount > highest_expense.amount:
-                highest_expense = expense
+            if expense.category not in categories_total:
+                categories_total[expense.category] = expense.amount
+            else:
+                categories_total[expense.category] += expense.amount
 
-        return {
-            "id": highest_expense.id,
-            "date": highest_expense.date,
-            "category": highest_expense.category,
-            "amount": f"{highest_expense.amount / 100:.2f}",
-        }
+        max_category = max(categories_total.items(), key=lambda item: item[1])[0]
+
+        return {max_category: f"{categories_total[max_category] / 100:.2f}"}
 
     def lowest_expense_cateory(self):
         expenses = self.storage.load()
-        highest_expense = expenses[0]
+        categories_total = {}
 
         for expense in expenses:
-            if expense.amount < highest_expense.amount:
-                highest_expense = expense
+            if expense.category not in categories_total:
+                categories_total[expense.category] = expense.amount
+            else:
+                categories_total[expense.category] += expense.amount
 
-        return {
-            "id": highest_expense.id,
-            "date": highest_expense.date,
-            "category": highest_expense.category,
-            "amount": f"{highest_expense.amount / 100:.2f}",
-        }
+        min_category = min(categories_total.items(), key=lambda item: item[1])[0]
+
+        return {min_category: f"{categories_total[min_category] / 100:.2f}"}
