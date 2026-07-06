@@ -1,9 +1,9 @@
 from uuid import uuid4
-from datetime import datetime
+from datetime import datetime, date
 
 
 class Expense:
-    def __init__(self, date, category, description, amount):
+    def __init__(self, date: date, category: str, description: str, amount: int):
         self.id = str(uuid4())
         self.date = date
         self.category = category
@@ -11,7 +11,7 @@ class Expense:
         self.amount = amount
         self.created_at = str(datetime.now())
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
         return {
             "id": self.id,
             "date": self.date,
@@ -22,7 +22,7 @@ class Expense:
         }
 
     @staticmethod
-    def from_dict(data):
+    def from_dict(data) -> Expense:
         expense = Expense(
             data["date"], data["category"], data["description"], data["amount"]
         )
