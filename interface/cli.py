@@ -1,13 +1,11 @@
 from services.expense_service import ExpenseService
-from storage.json_storage import JsonStorage
+from storage.postgres_storage import PostgresStorage
 from reports.reports import Reports
 from utils.validators import to_cents
 
-FILE_PATH = "data/expenses.json"
-
 
 def run_cli():
-    storage = JsonStorage(FILE_PATH)
+    storage = PostgresStorage()
     service = ExpenseService(storage)
     reports = Reports(storage)
     is_running = True
@@ -23,14 +21,14 @@ def run_cli():
         choice = input("Select an option: ")
 
         if choice == "1":
-            date = input("Date (eg, 6-26-2026): ")
+            expense_date = input("Date (eg, 6-26-2026): ")
             category = input("Category (eg, food): ")
             description = input("Description (eg, Bought breakfast): ")
             amount = to_cents(input("Amount (eg, 25.00): "))
 
-            expense = service.add_expense(date, category, description, amount)
+            expense = service.add_expense(category, description, amount, expense_date)
             print("===========Expense added============")
-            print(f"Added expense with id: {expense.id}")
+            print(f"Added expense with id: {expense.expense_id}")
             print("====================================")
 
         elif choice == "2":
@@ -39,8 +37,8 @@ def run_cli():
             all_expenses = service.list_expenses()
 
             for expense in all_expenses:
-                print(f"id: {expense.id}")
-                print(f"Date: {expense.date}")
+                print(f"expense_id: {expense.expense_id}")
+                print(f"Date: {expense.expense_date}")
                 print(f"Category: {expense.category}")
                 print(f"Description: {expense.description}")
                 print(f"Amount: {expense.amount / 100:.2f}")
@@ -73,7 +71,7 @@ def run_cli():
 
         elif choice == "4":
             expense_id = input("Enter id: ")
-            service.delete_expense(expense_id)
+            service.delete_expense(int(expense_id))
             print("Expense deleted!")
 
         elif choice == "5":

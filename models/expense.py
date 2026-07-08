@@ -1,31 +1,40 @@
-from uuid import uuid4
-from datetime import datetime
+from datetime import datetime, date
 
 
 class Expense:
-    def __init__(self, date, category, description, amount):
-        self.id = str(uuid4())
-        self.date = date
+    def __init__(
+        self,
+        category: str,
+        description: str,
+        amount: int,
+        expense_date: date,
+        expense_id: int | None = None,
+    ):
         self.category = category
         self.description = description
         self.amount = amount
-        self.created_at = str(datetime.now())
+        self.expense_date = expense_date
+        self.expense_id = expense_id
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
         return {
-            "id": self.id,
-            "date": self.date,
             "category": self.category,
             "description": self.description,
             "amount": self.amount,
-            "created_at": self.created_at,
+            "expense_date": self.expense_date.strftime("%m-%d-%Y"),
+            "expense_id": self.expense_id,
         }
 
     @staticmethod
-    def from_dict(data):
+    def from_dict(data) -> Expense:
+        expense_date = datetime.strptime(data["expense_date"], "%m-%d-%Y").date()
+
         expense = Expense(
-            data["date"], data["category"], data["description"], data["amount"]
+            data["category"],
+            data["description"],
+            data["amount"],
+            expense_date,
+            data["expense_id"],
         )
-        expense.id = data["id"]
 
         return expense
