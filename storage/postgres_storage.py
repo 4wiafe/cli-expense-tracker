@@ -138,3 +138,30 @@ class PostgresStorage:
         connection.close()
 
         return total_expenses
+
+    def get_total_by_category(self, category: str) -> int:
+        connection = get_connection()
+        cursor = connection.cursor()
+
+        cursor.execute(
+            """
+            SELECT SUM(amount)
+            FROM expenses
+            WHERE category = %s
+            """,
+            (category,),
+        )
+
+        row = cursor.fetchone()
+
+        if row is None:
+            raise RuntimeError(
+                "Failed to fetch total expenses for the specified category."
+            )
+
+        total_expenses = row[0]
+
+        cursor.close()
+        connection.close()
+
+        return total_expenses

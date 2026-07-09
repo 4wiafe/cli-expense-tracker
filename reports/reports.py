@@ -5,16 +5,11 @@ class Reports:
     def total_expenses(self) -> int:
         return self.storage.get_total_expenses()
 
-    def total_by_category(self, category):
+    def total_by_category(self, category) -> dict:
         striped_category = category.strip()
-        expenses = self.storage.load()
-        total = 0
+        total = self.storage.get_total_by_category(striped_category)
 
-        for expense in expenses:
-            if striped_category == expense.category:
-                total += expense.amount
-
-        return f"{expense.category}: {total / 100:.2f}"
+        return {"category": striped_category, "total": total}
 
     def highest_expense_category(self):
         expenses = self.storage.load()

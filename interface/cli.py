@@ -56,16 +56,18 @@ def run_cli():
                 total_expenses = reports.total_expenses()
                 print(f"Total expenses: {total_expenses / 100:.2f}")
 
-            if summary_choice == "2":
+            elif summary_choice == "2":
                 category = input("Enter a category: ")
-                total_expense_by_category = reports.total_by_category(category)
-                print(total_expense_by_category)
+                total_by_category = reports.total_by_category(category)
+                print(
+                    f"{total_by_category["category"]}: {total_by_category["total"] / 100:.2f}"
+                )
 
-            if summary_choice == "3":
+            elif summary_choice == "3":
                 highest_expense = reports.highest_expense_category()
                 print(highest_expense)
 
-            if summary_choice == "4":
+            elif summary_choice == "4":
                 lowest_expense = reports.lowest_expense_cateory()
                 print(lowest_expense)
 
