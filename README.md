@@ -1,6 +1,6 @@
-# CLI Expense Tracker (v1)
+# CLI Expense Tracker
 
-A simple command-line expense tracking application built with Python. The application allows users to record expenses, store them persistently, and generate basic financial reports.
+A command line expense tracking application built with Python and PostgreSQL. The project is being developed incrementally to practice backend engineering concepts including object oriented programming, layered architecture, SQL, database design, and data persistence.
 
 ## Features
 
@@ -8,19 +8,18 @@ A simple command-line expense tracking application built with Python. The applic
 
 - Add a new expense
 - View all expenses
-- Delete an expense
 - Find an expense by ID
+- Delete an expense
 
 ### Expense Information
 
 Each expense contains:
 
-- Unique ID
-- Date
+- Expense ID
 - Category
 - Description
 - Amount
-- Created At timestamp
+- Expense date
 
 ### Reporting
 
@@ -31,11 +30,13 @@ Generate summary reports including:
 - Category with the highest expense
 - Category with the lowest expense
 
-### Data Persistence
+### PostgreSQL Persistence
 
-- Expenses are stored in a JSON file
-- Data is automatically loaded when the application starts
-- Data is automatically saved after modifications
+- Stores expenses in a PostgreSQL database
+- Uses parameterized SQL queries
+- Supports CRUD operations
+- Retrieves database generated IDs
+- Maps database records to Python objects
 
 ### Input Validation
 
@@ -51,26 +52,32 @@ Generate summary reports including:
 ```text
 cli-expense-tracker/
 │
-├── data/
-│   └── expenses.json
+├── config/
+│   └── settings.py
+│
+├── database/
+│   └── connection.py
 │
 ├── models/
 │   └── expense.py
 │
 ├── services/
-│   ├── expense_service.py
-|
-│── storage/
-|   ├── json_storage.py
+│   └── expense_service.py
+│
+├── storage/
+│   ├── postgres_storage.py
+│   └── json_storage.py
 │
 ├── interface/
 │   └── cli.py
 │
 ├── utils/
-│   ├── validators.py
+│   └── validators.py
 │
-├── main.py
+├── .env.example
 ├── .gitignore
+├── main.py
+├── requirements.txt
 └── README.md
 ```
 
@@ -78,20 +85,20 @@ cli-expense-tracker/
 
 ## Installation
 
-### Clone the Repository
+### Clone the repository
 
 ```bash
 git clone https://github.com/4wiafe/cli-expense-tracker.git
 cd cli-expense-tracker
 ```
 
-### Create a Virtual Environment
+### Create a virtual environment
 
 ```bash
 python3 -m venv .venv
 ```
 
-### Activate the Virtual Environment
+### Activate the virtual environment
 
 #### macOS/Linux
 
@@ -105,7 +112,23 @@ source .venv/bin/activate
 .venv\Scripts\activate
 ```
 
-### Install Dependencies
+### Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### Configure environment variables
+
+Create a `.env` file in the project root and add your PostgreSQL configuration:
+
+```text
+DB_NAME=your_database
+DB_USER=your_username
+DB_PASSWORD=your_password
+DB_HOST=localhost
+DB_PORT=5432
+```
 
 ---
 
@@ -117,88 +140,55 @@ python main.py
 
 ---
 
-## Example Usage
-
-### Add an Expense
-
-```text
-Enter expense date: 2026-08-17
-Enter category: Food
-Enter description: Lunch
-Enter amount: 45
-```
-
-### View Expenses
-
-```text
-ID: 3f8d...
-Date: August 17 2026
-Category: Food
-Description: Lunch
-Amount: 45
-```
-
-### Generate Report
-
-```text
-Expense Summary Report
-
-Total Expenses: 1,250
-
-Expenses by Category:
-Food: 450
-
-Highest Spending Category:
-Utilities (500)
-
-Lowest Spending Category:
-Transport (300)
-```
-
----
-
 ## Technologies Used
 
 - Python 3
-- JSON
-- Object-Oriented Programming (OOP)
-- File Handling
+- PostgreSQL
+- Psycopg
+- SQL
+- python-dotenv
+- Object Oriented Programming
+- Layered Architecture
 - Exception Handling
-- UUID
-- Datetime
 
 ---
 
-## Learning Objectives
+## Backend Concepts Practiced
 
-This project was built to practice:
+This project is being built to strengthen my understanding of backend engineering by practicing:
 
 - Python fundamentals
-- Classes and Objects
-- Modules and Packages
-- File I/O
-- JSON serialization and deserialization
-- Error handling
-- Data validation
+- Object Oriented Programming
+- SQL
+- PostgreSQL
+- Database connections
+- CRUD operations
+- Parameterized SQL queries
+- Transaction management
+- Environment variable management
+- Data modeling
 - Separation of concerns
-- Service-based architecture
+- Service layer architecture
+- Storage abstraction
 - Clean code principles
 
 ---
 
-## Future Improvements (v2)
+## Future Improvements
 
-Potential enhancements for future versions:
+Planned enhancements include:
 
-- PostgreSQL database support
+- Update expense functionality
 - Monthly and yearly reports
-- Expense filtering by category
-- Expense filtering by date range
+- Filter expenses by category
+- Filter expenses by date range
 - Export reports to CSV
-- Budget tracking
-- User accounts and authentication
-- REST API version
-- Web interface
+- Database migrations
+- Unit and integration tests
+- Logging
+- Docker support
+- REST API with FastAPI
+- User authentication and authorization
 
 ---
 
@@ -206,4 +196,4 @@ Potential enhancements for future versions:
 
 **Richmond Kwame Wiafe Gyebi**
 
-Aspiring Backend Engineer focused on building scalable backend systems and eventually developing an AI-powered WASSCE learning platform.
+Aspiring Backend Engineer focused on building scalable backend systems while continuously strengthening my knowledge of Python, SQL, PostgreSQL, and software architecture through hands on projects.

@@ -2,14 +2,8 @@ class Reports:
     def __init__(self, storage):
         self.storage = storage
 
-    def total_expenses(self):
-        expenses = self.storage.load()
-        total = 0
-
-        for expense in expenses:
-            total += expense.amount
-
-        return total
+    def total_expenses(self) -> int:
+        return self.storage.get_total_expenses()
 
     def total_by_category(self, category):
         striped_category = category.strip()

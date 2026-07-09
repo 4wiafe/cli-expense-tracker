@@ -117,3 +117,24 @@ class PostgresStorage:
         connection.close()
 
         return success
+
+    def get_total_expenses(self) -> int:
+        connection = get_connection()
+        cursor = connection.cursor()
+
+        cursor.execute("""
+            SELECT SUM(amount)
+            FROM expenses
+            """)
+
+        row = cursor.fetchone()
+
+        if row is None:
+            raise RuntimeError("Failed to retrieve total expenses.")
+
+        total_expenses = row[0]
+
+        cursor.close()
+        connection.close()
+
+        return total_expenses
