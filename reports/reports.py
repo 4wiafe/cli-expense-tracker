@@ -1,3 +1,6 @@
+from datetime import datetime, date
+
+
 class Reports:
     def __init__(self, storage):
         self.storage = storage
@@ -11,30 +14,24 @@ class Reports:
 
         return {"category": striped_category, "total": total}
 
-    def highest_expense_category(self):
-        expenses = self.storage.load()
-        categories_total = {}
+    def highest_expense_category(self) -> dict[str, int | str]:
+        highest_expense = self.storage.get_highest_expense()
 
-        for expense in expenses:
-            if expense.category not in categories_total:
-                categories_total[expense.category] = expense.amount
-            else:
-                categories_total[expense.category] += expense.amount
+        return {
+            "expense_id": highest_expense.expense_id,
+            "category": highest_expense.category,
+            "description": highest_expense.description,
+            "amount": f"{highest_expense.amount / 100:.2f}",
+            "expense_date": highest_expense.expense_date.strftime("%m-%d-%Y"),
+        }
 
-        max_category = max(categories_total.items(), key=lambda item: item[1])[0]
+    def lowest_expense_cateory(self) -> dict[str, int | str | date]:
+        lowest_expense = self.storage.get_lowest_expense()
 
-        return {max_category: f"{categories_total[max_category] / 100:.2f}"}
-
-    def lowest_expense_cateory(self):
-        expenses = self.storage.load()
-        categories_total = {}
-
-        for expense in expenses:
-            if expense.category not in categories_total:
-                categories_total[expense.category] = expense.amount
-            else:
-                categories_total[expense.category] += expense.amount
-
-        min_category = min(categories_total.items(), key=lambda item: item[1])[0]
-
-        return {min_category: f"{categories_total[min_category] / 100:.2f}"}
+        return {
+            "expense_id": lowest_expense.expense_id,
+            "category": lowest_expense.category,
+            "description": lowest_expense.description,
+            "amount": f"{lowest_expense.amount / 100:.2f}",
+            "expense_date": lowest_expense.expense_date.strftime("%m-%d-%Y"),
+        }

@@ -26,15 +26,17 @@ class Expense:
         }
 
     @staticmethod
-    def from_dict(data) -> Expense:
-        expense_date = datetime.strptime(data["expense_date"], "%m-%d-%Y").date()
+    def from_dict(expense_data: dict) -> Expense:
+        expense_date = datetime.strptime(
+            expense_data["expense_date"], "%m-%d-%Y"
+        ).date()
 
         expense = Expense(
-            data["category"],
-            data["description"],
-            data["amount"],
+            expense_data["category"],
+            expense_data["description"],
+            expense_data["amount"],
             expense_date,
-            data["expense_id"],
+            expense_data["expense_id"],
         )
 
         return expense

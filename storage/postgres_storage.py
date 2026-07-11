@@ -165,3 +165,65 @@ class PostgresStorage:
         connection.close()
 
         return total_expenses
+
+    def get_highest_expense(self) -> Expense | None:
+        connection = get_connection()
+        cursor = connection.cursor()
+
+        cursor.execute("""
+            SELECT expense_id, category, description, amount, expense_date
+            FROM expenses
+            ORDER BY amount DESC
+            LIMIT 1
+            """)
+
+        row = cursor.fetchone()
+
+        if row is None:
+            cursor.close()
+            connection.close()
+            return
+
+        highest_expense = Expense(
+            expense_id=row[0],
+            category=row[1],
+            description=row[2],
+            amount=row[3],
+            expense_date=row[4],
+        )
+
+        cursor.close()
+        connection.close()
+
+        return highest_expense
+
+    def get_lowest_expense(self) -> Expense | None:
+        connection = get_connection()
+        cursor = connection.cursor()
+
+        cursor.execute("""
+            SELECT expense_id, category, description, amount, expense_date
+            FROM expenses
+            ORDER BY amount
+            LIMIT 1
+            """)
+
+        row = cursor.fetchone()
+
+        if row is None:
+            cursor.close()
+            connection.close()
+            return
+
+        lowest_expense = Expense(
+            expense_id=row[0],
+            category=row[1],
+            description=row[2],
+            amount=row[3],
+            expense_date=row[4],
+        )
+
+        cursor.close()
+        connection.close()
+
+        return lowest_expense
