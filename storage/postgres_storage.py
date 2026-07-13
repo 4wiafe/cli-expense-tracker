@@ -3,227 +3,179 @@ from models.expense import Expense
 
 
 class PostgresStorage:
-    def add_expense(self, expense: Expense) -> int:
-        connection = get_connection()
-        cursor = connection.cursor()
+    def add_expense(self, expense: Expense) -> Expense:
+        with get_connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    INSERT INTO expenses (category, description, amount, expense_date)
+                    VALUES (%s, %s, %s, %s)
+                    RETURNING expense_id, category, description, amount, expense_date
+                    """,
+                    (
+                        expense.category,
+                        expense.description,
+                        expense.amount,
+                        expense.expense_date,
+                    ),
+                )
 
-        cursor.execute(
-            """
-            INSERT INTO expenses (category, description, amount, expense_date)
-            VALUES (%s, %s, %s, %s)
-            RETURNING expense_id
-            """,
-            (
-                expense.category,
-                expense.description,
-                expense.amount,
-                expense.expense_date,
-            ),
+                row = cursor.fetchone()
+
+                if row is None:
+                    raise RuntimeError("Failed to add the expense.")
+
+        return Expense(
+            expense_id=row[0],
+            category=row[1],
+            description=row[2],
+            amount=row[3],
+            expense_date=row[4],
         )
-
-        row = cursor.fetchone()
-
-        if row is None:
-            raise RuntimeError("Failed to retrieve generated expense ID.")
-
-        expense_id = row[0]
-
-        connection.commit()
-
-        cursor.close()
-        connection.close()
-
-        return expense_id
 
     def get_all_expenses(self) -> list[Expense]:
-        connection = get_connection()
-        cursor = connection.cursor()
-
-        cursor.execute("""
+        with get_connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute("""
             SELECT expense_id, category, description, amount, expense_date
             FROM expenses
             """)
 
-        rows = cursor.fetchall()
-        expense_objects = []
+                rows = cursor.fetchall()
+                expenses = []
 
-        for row in rows:
-            expense = Expense(
-                category=row[1],
-                description=row[2],
-                amount=row[3],
-                expense_date=row[4],
-                expense_id=row[0],
-            )
+                for row in rows:
+                    expense = Expense(
+                        category=row[1],
+                        description=row[2],
+                        amount=row[3],
+                        expense_date=row[4],
+                        expense_id=row[0],
+                    )
 
-            expense_objects.append(expense)
+                    expenses.append(expense)
 
-        cursor.close()
-        connection.close()
-
-        return expense_objects
+        return expenses
 
     def find_by_id(self, expense_id: int) -> Expense:
-        connection = get_connection()
-        cursor = connection.cursor()
+        with get_connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT expense_id, category, description, amount, expense_date
+                    FROM expenses
+                    WHERE expense_id = %s
+                    """,
+                    (expense_id,),
+                )
 
-        cursor.execute(
-            """
-            SELECT expense_id, category, description, amount, expense_date
-            FROM expenses
-            WHERE expense_id = %s
-            """,
-            (expense_id,),
-        )
+                row = cursor.fetchone()
 
-        row = cursor.fetchone()
+                if row is None:
+                    raise RuntimeError(f"Expense with id {expense_id} not found.")
 
-        if row is None:
-            raise RuntimeError("Failed to retrieve expense.")
-
-        expense = Expense(
+        return Expense(
             category=row[1],
             description=row[2],
             amount=row[3],
             expense_date=row[4],
             expense_id=row[0],
         )
-
-        cursor.close()
-        connection.close()
-
-        return expense
 
     def delete_expense(self, expense_id: int) -> bool:
-        connection = get_connection()
-        cursor = connection.cursor()
+        with get_connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    DELETE FROM expenses
+                    WHERE expense_id = %s
+                    RETURNING expense_id
+                    """,
+                    (expense_id,),
+                )
 
-        cursor.execute(
-            """
-            DELETE FROM expenses
-            WHERE expense_id = %s
-            RETURNING expense_id
-            """,
-            (expense_id,),
-        )
+                row = cursor.fetchone()
 
-        deleted_expense = cursor.fetchone()
-
-        connection.commit()
-
-        success = deleted_expense is not None
-
-        cursor.close()
-        connection.close()
-
-        return success
+        return row is not None
 
     def get_total_expenses(self) -> int:
-        connection = get_connection()
-        cursor = connection.cursor()
-
-        cursor.execute("""
-            SELECT SUM(amount)
-            FROM expenses
+        with get_connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    SELECT SUM(amount)
+                    FROM expenses
             """)
 
-        row = cursor.fetchone()
+                row = cursor.fetchone()
 
-        if row is None:
-            raise RuntimeError("Failed to retrieve total expenses.")
+                if row is None:
+                    raise RuntimeError("Failed to retrieve total expenses.")
 
-        total_expenses = row[0]
-
-        cursor.close()
-        connection.close()
-
-        return total_expenses
+        return row[0]
 
     def get_total_by_category(self, category: str) -> int:
-        connection = get_connection()
-        cursor = connection.cursor()
+        with get_connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT SUM(amount)
+                    FROM expenses
+                    WHERE category = %s
+                    """,
+                    (category,),
+                )
 
-        cursor.execute(
-            """
-            SELECT SUM(amount)
-            FROM expenses
-            WHERE category = %s
-            """,
-            (category,),
-        )
+                row = cursor.fetchone()
 
-        row = cursor.fetchone()
+                if row is None:
+                    raise RuntimeError(
+                        "Failed to fetch total expenses for the specified category."
+                    )
 
-        if row is None:
-            raise RuntimeError(
-                "Failed to fetch total expenses for the specified category."
-            )
-
-        total_expenses = row[0]
-
-        cursor.close()
-        connection.close()
-
-        return total_expenses
+        return row[0]
 
     def get_highest_expense(self) -> Expense | None:
-        connection = get_connection()
-        cursor = connection.cursor()
+        with get_connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    SELECT expense_id, category, description, amount, expense_date
+                    FROM expenses
+                    ORDER BY amount DESC
+                    LIMIT 1
+                """)
 
-        cursor.execute("""
-            SELECT expense_id, category, description, amount, expense_date
-            FROM expenses
-            ORDER BY amount DESC
-            LIMIT 1
-            """)
+                row = cursor.fetchone()
 
-        row = cursor.fetchone()
+                if row is None:
+                    return None
 
-        if row is None:
-            cursor.close()
-            connection.close()
-            return
-
-        highest_expense = Expense(
+        return Expense(
             expense_id=row[0],
             category=row[1],
             description=row[2],
             amount=row[3],
             expense_date=row[4],
         )
-
-        cursor.close()
-        connection.close()
-
-        return highest_expense
 
     def get_lowest_expense(self) -> Expense | None:
-        connection = get_connection()
-        cursor = connection.cursor()
+        with get_connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    SELECT expense_id, category, description, amount, expense_date
+                    FROM expenses
+                    ORDER BY amount
+                    LIMIT 1
+                """)
 
-        cursor.execute("""
-            SELECT expense_id, category, description, amount, expense_date
-            FROM expenses
-            ORDER BY amount
-            LIMIT 1
-            """)
+                row = cursor.fetchone()
 
-        row = cursor.fetchone()
+                if row is None:
+                    return
 
-        if row is None:
-            cursor.close()
-            connection.close()
-            return
-
-        lowest_expense = Expense(
+        return Expense(
             expense_id=row[0],
             category=row[1],
             description=row[2],
             amount=row[3],
             expense_date=row[4],
         )
-
-        cursor.close()
-        connection.close()
-
-        return lowest_expense

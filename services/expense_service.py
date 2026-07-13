@@ -9,13 +9,13 @@ class ExpenseService:
     def add_expense(
         self, category: str, description: str, amount: int, expense_date: str
     ) -> Expense:
-        normalized_date = datetime.strptime(expense_date, "%m-%d-%Y").date()
+        normalized_date = datetime.strptime(expense_date, "%d-%m-%Y").date()
 
         expense = Expense(category, description, amount, normalized_date)
 
-        self.storage.add_expense(expense)
+        added_expense = self.storage.add_expense(expense)
 
-        return expense
+        return added_expense
 
     def list_expenses(self) -> list[Expense]:
         return self.storage.get_all_expenses()

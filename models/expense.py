@@ -18,17 +18,17 @@ class Expense:
 
     def to_dict(self) -> dict:
         return {
+            "expense_id": self.expense_id,
             "category": self.category,
             "description": self.description,
-            "amount": self.amount,
-            "expense_date": self.expense_date.strftime("%m-%d-%Y"),
-            "expense_id": self.expense_id,
+            "amount": f"{self.amount / 100:.2f}",
+            "expense_date": self.expense_date.strftime("%d-%m-%Y"),
         }
 
     @staticmethod
     def from_dict(expense_data: dict) -> Expense:
         expense_date = datetime.strptime(
-            expense_data["expense_date"], "%m-%d-%Y"
+            expense_data["expense_date"], "%d-%m-%Y"
         ).date()
 
         expense = Expense(
