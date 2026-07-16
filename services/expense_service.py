@@ -17,6 +17,43 @@ class ExpenseService:
 
         return added_expense
 
+    def update_expense(self, expense_id, updates: dict[str, str | int]) -> Expense:
+        normalized_expense_id = int(expense_id.strip())
+        allowed_fields = {
+            "category",
+            "description",
+            "amount",
+            "expense_date",
+        }
+
+        normalized_updates = {}
+
+        if not updates:
+            raise ValueError(f"Updates cannot be empty: {updates}")
+
+        for field, value in updates.items():
+            if field not in allowed_fields:
+                raise ValueError(f"Invalid update field: {field}")
+
+            if field == "amount":
+                if not isinstance(value, (int, str)):
+                    raise ValueError(f"Invalid amount: {value}")
+
+                value = int(value) * 100
+            elif field == "expense_date":
+                if not isinstance(value, (str)):
+                    raise ValueError(f"Invalid date: {value}")
+
+                value = datetime.strptime(value, "%d-%m-%Y").date()
+
+            normalized_updates[field] = value
+
+        updated_expense = self.storage.update_expense(
+            normalized_expense_id, normalized_updates
+        )
+
+        return updated_expense
+
     def list_expenses(self) -> list[Expense]:
         return self.storage.get_all_expenses()
 
