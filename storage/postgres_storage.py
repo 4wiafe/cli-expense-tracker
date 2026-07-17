@@ -154,7 +154,7 @@ class PostgresStorage:
         with get_connection() as connection:
             with connection.cursor() as cursor:
                 cursor.execute("""
-                    SELECT SUM(amount)
+                    SELECT COALESCE(SUM(amount), 0)
                     FROM expenses
             """)
 
@@ -165,14 +165,15 @@ class PostgresStorage:
 
         return row[0]
 
-    def get_total_by_category(self, category: str) -> int:
+    def get_spending_by_category(self, category: str) -> int:
         with get_connection() as connection:
             with connection.cursor() as cursor:
                 cursor.execute(
                     """
-                    SELECT SUM(amount)
+                    SELECT category, COALESCE(SUM(amount), 0)
                     FROM expenses
                     WHERE category = %s
+                    GROUP BY category
                     """,
                     (category,),
                 )
@@ -181,18 +182,19 @@ class PostgresStorage:
 
                 if row is None:
                     raise RuntimeError(
-                        "Failed to fetch total expenses for the specified category."
+                        f"Failed to fetch total expenses for the specified category: {category}"
                     )
 
-        return row[0]
+        return row[1]
 
-    def get_highest_expense(self) -> Expense | None:
+    def get_highest_spending_category(self) -> tuple[str | int] | None:
         with get_connection() as connection:
             with connection.cursor() as cursor:
                 cursor.execute("""
-                    SELECT expense_id, category, description, amount, expense_date
+                    SELECT category, COALESCE(SUM(amount), 0) AS total
                     FROM expenses
-                    ORDER BY amount DESC
+                    GROUP BY category
+                    ORDER BY total DESC
                     LIMIT 1
                 """)
 
@@ -201,21 +203,16 @@ class PostgresStorage:
                 if row is None:
                     return None
 
-        return Expense(
-            expense_id=row[0],
-            category=row[1],
-            description=row[2],
-            amount=row[3],
-            expense_date=row[4],
-        )
+        return row
 
-    def get_lowest_expense(self) -> Expense | None:
+    def get_lowest_spending_category(self) -> tuple[str, int] | None:
         with get_connection() as connection:
             with connection.cursor() as cursor:
                 cursor.execute("""
-                    SELECT expense_id, category, description, amount, expense_date
+                    SELECT category, COALESCE(SUM(amount), 0) AS total
                     FROM expenses
-                    ORDER BY amount
+                    GROUP BY category
+                    ORDER BY total
                     LIMIT 1
                 """)
 
@@ -224,10 +221,17 @@ class PostgresStorage:
                 if row is None:
                     return
 
-        return Expense(
-            expense_id=row[0],
-            category=row[1],
-            description=row[2],
-            amount=row[3],
-            expense_date=row[4],
-        )
+        return row
+
+    def get_category_spending(self) -> list[tuple]:
+        with get_connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    SELECT category, COALESCE(SUM(amount), 0) as total
+                    FROM expenses
+                    GROUP BY category
+                    """)
+
+                totals = cursor.fetchall()
+
+        return totals

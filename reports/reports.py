@@ -8,30 +8,31 @@ class Reports:
     def total_expenses(self) -> int:
         return self.storage.get_total_expenses()
 
-    def total_by_category(self, category) -> dict:
+    def total_by_category(self, category) -> dict[str, int]:
         striped_category = category.strip()
         total = self.storage.get_total_by_category(striped_category)
 
         return {"category": striped_category, "total": total}
 
-    def highest_expense_category(self) -> dict[str, int | str]:
-        highest_expense = self.storage.get_highest_expense()
+    def highest_spending_category(self) -> dict[str, int | str]:
+        highest_category = self.storage.get_highest_spending_category()
 
-        return {
-            "expense_id": highest_expense.expense_id,
-            "category": highest_expense.category,
-            "description": highest_expense.description,
-            "amount": f"{highest_expense.amount / 100:.2f}",
-            "expense_date": highest_expense.expense_date.strftime("%m-%d-%Y"),
-        }
+        return {highest_category[0]: f"{highest_category[1] / 100:.2f}"}
 
-    def lowest_expense_cateory(self) -> dict[str, int | str | date]:
-        lowest_expense = self.storage.get_lowest_expense()
+    def lowest_spending_cateory(self) -> dict[str, int | str]:
+        lowest_category = self.storage.get_lowest_spending_category()
 
-        return {
-            "expense_id": lowest_expense.expense_id,
-            "category": lowest_expense.category,
-            "description": lowest_expense.description,
-            "amount": f"{lowest_expense.amount / 100:.2f}",
-            "expense_date": lowest_expense.expense_date.strftime("%m-%d-%Y"),
-        }
+        return {lowest_category[0]: f"{lowest_category[1] / 100:.2f}"}
+
+    def category_spending(self) -> list[dict]:
+        all_spending_categories = []
+        spending_categories = self.storage.get_category_spending()
+
+        for spending_category in spending_categories:
+            normalized_category = {
+                spending_category[0]: f"{spending_category[1] / 100:.2f}"
+            }
+
+            all_spending_categories.append(normalized_category)
+
+        return all_spending_categories

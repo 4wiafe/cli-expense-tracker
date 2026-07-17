@@ -85,8 +85,9 @@ def run_cli():
         elif choice == "5":
             print("1. View total expenses")
             print("2. View total by category")
-            print("3. View highest expense")
-            print("4. View lowest expense")
+            print("3. View highest spending category")
+            print("4. View lowest spending category")
+            print("5. View all spending categories")
 
             summary_choice = input("Select an option: ")
 
@@ -102,12 +103,19 @@ def run_cli():
                 )
 
             elif summary_choice == "3":
-                highest_expense = reports.highest_expense_category()
-                print(highest_expense)
+                highest_category = reports.highest_spending_category()
+                print("======= Highest Spending Category =======")
+                print(highest_category)
 
             elif summary_choice == "4":
-                lowest_expense = reports.lowest_expense_cateory()
-                print(lowest_expense)
+                lowest_category = reports.lowest_spending_cateory()
+                print("======= Lowest Spending Category =======")
+                print(lowest_category)
+
+            elif summary_choice == "5":
+                categories = reports.category_spending()
+                print("======= All Spending Categories =======")
+                print(categories)
 
         elif choice == "6":
             expense_id = input("Enter id: ")
