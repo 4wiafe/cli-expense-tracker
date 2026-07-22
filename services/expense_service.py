@@ -10,8 +10,9 @@ class ExpenseService:
         self, category: str, description: str, amount: int, expense_date: str
     ) -> Expense:
         normalized_date = datetime.strptime(expense_date, "%d-%m-%Y").date()
+        normalized_category = category.capitalize()
 
-        expense = Expense(category, description, amount, normalized_date)
+        expense = Expense(normalized_category, description, amount, normalized_date)
 
         added_expense = self.storage.add_expense(expense)
 

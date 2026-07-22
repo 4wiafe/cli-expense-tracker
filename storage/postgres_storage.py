@@ -9,12 +9,26 @@ class PostgresStorage:
             with connection.cursor() as cursor:
                 cursor.execute(
                     """
-                    INSERT INTO expenses (category, description, amount, expense_date)
+                    SELECT category_id
+                    FROM categories
+                    WHERE name = %s;
+                    """,
+                    (expense.category,),
+                )
+
+                category_id = cursor.fetchone()
+
+                if category_id is None:
+                    raise ValueError(f"Invalid category: {expense.category}")
+
+                cursor.execute(
+                    """
+                    INSERT INTO expenses (category_id, description, amount, expense_date)
                     VALUES (%s, %s, %s, %s)
-                    RETURNING expense_id, category, description, amount, expense_date
+                    RETURNING expense_id, category_id, description, amount, expense_date;
                     """,
                     (
-                        expense.category,
+                        category_id[0],
                         expense.description,
                         expense.amount,
                         expense.expense_date,
@@ -24,11 +38,11 @@ class PostgresStorage:
                 row = cursor.fetchone()
 
                 if row is None:
-                    raise RuntimeError("Failed to add the expense.")
+                    raise RuntimeError(f"Failed to add the expense: {row}")
 
         return Expense(
             expense_id=row[0],
-            category=row[1],
+            category=expense.category,
             description=row[2],
             amount=row[3],
             expense_date=row[4],
@@ -54,28 +68,50 @@ class PostgresStorage:
         set_clauses = []
         values = []
 
-        for field, value in updates.items():
-            set_clauses.append(f"{field} = %s")
-            values.append(value)
-
-        set_clause = ", ".join(set_clauses)
-        values.append(expense_id)
-
-        query = f"""
-            UPDATE expenses
-            SET {set_clause}
-            WHERE expense_id = %s
-            RETURNING expense_id, category, description, amount, expense_date
-        """
-
         with get_connection() as connection:
             with connection.cursor() as cursor:
-                cursor.execute(query, values)
+                for field, value in updates.items():
+                    if field == "category":
+                        cursor.execute(
+                            """
+                            SELECT category_id
+                            FROM categories
+                            WHERE name = %s;
+                            """,
+                            (value,),
+                        )
+
+                        row = cursor.fetchone()
+
+                        if row is None:
+                            raise RuntimeError(f"Failed to fetch category id: {value}")
+
+                        set_clauses.append("category_id = %s")
+                        values.append(row[0])
+                        continue
+
+                    set_clauses.append(f"{field} = %s")
+                    values.append(value)
+
+                set_clause = ", ".join(set_clauses)
+                values.append(expense_id)
+
+                cursor.execute(
+                    f"""
+                    UPDATE expenses as e
+                    SET {set_clause}
+                    FROM categories as c
+                    WHERE e.expense_id = %s
+                        AND e.category_id = c.category_id
+                    RETURNING e.expense_id, c.name, e.description, e.amount, e.expense_date;
+                    """,
+                    values,
+                )
 
                 row = cursor.fetchone()
 
                 if row is None:
-                    raise RuntimeError("Could not find expense.")
+                    raise RuntimeError(f"Could not find expense: {row}")
 
                 return Expense(
                     expense_id=row[0],
@@ -89,9 +125,10 @@ class PostgresStorage:
         with get_connection() as connection:
             with connection.cursor() as cursor:
                 cursor.execute("""
-            SELECT expense_id, category, description, amount, expense_date
-            FROM expenses
-            """)
+                    SELECT e.expense_id, c.name, e.description, e.amount, e.expense_date
+                    FROM expenses AS e
+                    JOIN categories AS c ON e.category_id = c.category_id;
+                """)
 
                 rows = cursor.fetchall()
                 expenses = []
@@ -114,9 +151,10 @@ class PostgresStorage:
             with connection.cursor() as cursor:
                 cursor.execute(
                     """
-                    SELECT expense_id, category, description, amount, expense_date
-                    FROM expenses
-                    WHERE expense_id = %s
+                    SELECT e.expense_id, c.name, e.description, e.amount, e.expense_date
+                    FROM expenses AS e
+                    JOIN categories AS c ON e.category_id = c.category_id
+                    WHERE e.expense_id = %s;
                     """,
                     (expense_id,),
                 )
@@ -165,15 +203,16 @@ class PostgresStorage:
 
         return row[0]
 
-    def get_spending_by_category(self, category: str) -> int:
+    def get_spending_by_category(self, category: str) -> tuple[str, int]:
         with get_connection() as connection:
             with connection.cursor() as cursor:
                 cursor.execute(
                     """
-                    SELECT category, COALESCE(SUM(amount), 0)
-                    FROM expenses
-                    WHERE category = %s
-                    GROUP BY category
+                    SELECT c.name, COALESCE(SUM(e.amount), 0) AS total
+                    FROM categories AS c
+                        LEFT JOIN expenses AS e ON e.category_id = c.category_id
+                    WHERE c.name = %s
+                    GROUP BY c.name;
                     """,
                     (category,),
                 )
@@ -185,20 +224,35 @@ class PostgresStorage:
                         f"Failed to fetch total expenses for the specified category: {category}"
                     )
 
-        return row[1]
+        return row
 
-    def get_highest_spending_category(self) -> tuple[str | int] | None:
+    def get_highest_spending_category(self) -> list[tuple] | None:
         with get_connection() as connection:
             with connection.cursor() as cursor:
                 cursor.execute("""
-                    SELECT category, COALESCE(SUM(amount), 0) AS total
-                    FROM expenses
-                    GROUP BY category
-                    ORDER BY total DESC
-                    LIMIT 1
+                    SELECT category_name, total
+                    FROM (
+                        SELECT c.name AS category_name,
+                            COALESCE(SUM(e.amount), 0) AS total
+                        FROM categories AS c
+                            LEFT JOIN expenses AS e ON e.category_id = c.category_id
+                        GROUP BY c.name
+                        HAVING SUM(e.amount) > 0
+                    ) AS category_totals
+                    WHERE total = (
+                        SELECT COALESCE(MAX(total), 0) AS highest_total
+                        FROM (
+                            SELECT c.name AS category_name,
+                                COALESCE(SUM(e.amount), 0) AS total
+                            FROM categories AS c
+                                LEFT JOIN expenses AS e ON e.category_id = c.category_id
+                            GROUP BY c.name
+                            HAVING SUM(e.amount) > 0
+                        ) AS category_totals
+                    );
                 """)
 
-                row = cursor.fetchone()
+                row = cursor.fetchall()
 
                 if row is None:
                     return None
@@ -209,11 +263,26 @@ class PostgresStorage:
         with get_connection() as connection:
             with connection.cursor() as cursor:
                 cursor.execute("""
-                    SELECT category, COALESCE(SUM(amount), 0) AS total
-                    FROM expenses
-                    GROUP BY category
-                    ORDER BY total
-                    LIMIT 1
+                    SELECT category_name, total
+                    FROM (
+                        SELECT c.name AS category_name,
+                            COALESCE(SUM(e.amount), 0) AS total
+                        FROM categories AS c
+                            LEFT JOIN expenses AS e ON e.category_id = c.category_id
+                        GROUP BY c.name
+                        HAVING SUM(e.amount) > 0
+                    ) AS category_totals
+                    WHERE total = (
+                        SELECT COALESCE(MIN(total), 0) AS lowest_total
+                        FROM (
+                            SELECT c.name AS category_name,
+                                COALESCE(SUM(e.amount), 0) AS total
+                            FROM categories AS c
+                                LEFT JOIN expenses AS e ON e.category_id = c.category_id
+                            GROUP BY c.name
+                            HAVING SUM(e.amount) > 0
+                        ) AS category_totals
+                    );
                 """)
 
                 row = cursor.fetchone()
@@ -227,9 +296,11 @@ class PostgresStorage:
         with get_connection() as connection:
             with connection.cursor() as cursor:
                 cursor.execute("""
-                    SELECT category, COALESCE(SUM(amount), 0) as total
-                    FROM expenses
-                    GROUP BY category
+                    SELECT c.name as category_name,
+                    COALESCE(SUM(e.amount), 0) as total
+                    FROM categories as c
+                    LEFT JOIN expenses as e ON e.category_id = c.category_id
+                    GROUP BY c.name;
                     """)
 
                 totals = cursor.fetchall()

@@ -9,10 +9,12 @@ class Reports:
         return self.storage.get_total_expenses()
 
     def total_by_category(self, category) -> dict[str, int]:
-        striped_category = category.strip()
-        total = self.storage.get_total_by_category(striped_category)
+        normalized_category = category.strip().capitalize()
+        category_name, total = self.storage.get_spending_by_category(
+            normalized_category
+        )
 
-        return {"category": striped_category, "total": total}
+        return {"category": category_name, "total": total}
 
     def highest_spending_category(self) -> dict[str, int | str]:
         highest_category = self.storage.get_highest_spending_category()
