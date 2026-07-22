@@ -4,7 +4,7 @@ from datetime import date
 
 
 class PostgresStorage:
-    def add_expense(self, expense: Expense) -> Expense:
+    def add_expense(self, expense: Expense, user_id: int) -> Expense:
         with get_connection() as connection:
             with connection.cursor() as cursor:
                 cursor.execute(
@@ -23,11 +23,12 @@ class PostgresStorage:
 
                 cursor.execute(
                     """
-                    INSERT INTO expenses (category_id, description, amount, expense_date)
-                    VALUES (%s, %s, %s, %s)
+                    INSERT INTO expenses (user_id, category_id, description, amount, expense_date)
+                    VALUES (%s, %s, %s, %s, %s)
                     RETURNING expense_id, category_id, description, amount, expense_date;
                     """,
                     (
+                        user_id,
                         category_id[0],
                         expense.description,
                         expense.amount,
