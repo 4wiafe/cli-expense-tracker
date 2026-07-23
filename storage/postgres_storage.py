@@ -54,12 +54,7 @@ class PostgresStorage:
     def update_expense(
         self, expense_id: int, updates: dict[str, str | int | date]
     ) -> Expense:
-        allowed_fields = {
-            "category",
-            "description",
-            "amount",
-            "expense_date",
-        }
+        allowed_fields = {"category", "description", "amount", "expense_date"}
 
         if not updates:
             raise ValueError(f"Updates cannot be empty: {updates}")
@@ -338,3 +333,55 @@ class PostgresStorage:
                     raise RuntimeError(f"Failed to add salary: {salary}")
 
                 return row
+
+    def update_salary(self, salary_id: int, updates: dict[str, int]) -> Salary:
+        allowed_fields = {"amount", "month", "year"}
+
+        if not updates:
+            raise ValueError(f"Updates cannot be empty: {updates}")
+
+        for field in updates:
+            if field not in allowed_fields:
+                raise ValueError(f"Invalid update field: {field}")
+
+        set_clauses = []
+        values = []
+
+        for field, value in updates.items():
+            set_clauses.append(f"{field} = %s")
+            values.append(value)
+
+        set_clause = ", ".join(set_clauses)
+        values.append(salary_id)
+
+        with get_connection() as connection:
+            with connection.cursor() as cursor:
+                try:
+                    cursor.execute(
+                        f"""
+                        UPDATE salaries
+                        SET {set_clause}
+                        WHERE salary_id = %s
+                        RETURNING salary_id, amount, month, year;
+                        """,
+                        values,
+                    )
+
+                except psycopg.errors.UniqueViolation:
+                    raise ValueError(
+                        "The salary you tried to upadte has duplicate data. Please try again"
+                    )
+
+                row = cursor.fetchone()
+
+                if row is None:
+                    raise RuntimeError(
+                        f"Failed to update the salary with id: {salary_id}"
+                    )
+
+            return Salary(
+                amount=row[1],
+                month=row[2],
+                year=row[3],
+                salary_id=row[0],
+            )
