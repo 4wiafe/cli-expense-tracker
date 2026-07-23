@@ -1,6 +1,8 @@
 from database.connection import get_connection
 from models.expense import Expense
+from models.salary import Salary
 from datetime import date
+import psycopg
 
 
 class PostgresStorage:
@@ -39,7 +41,7 @@ class PostgresStorage:
                 row = cursor.fetchone()
 
                 if row is None:
-                    raise RuntimeError(f"Failed to add the expense: {row}")
+                    raise RuntimeError(f"Failed to add the expense: {expense}")
 
         return Expense(
             expense_id=row[0],
@@ -204,7 +206,7 @@ class PostgresStorage:
 
         return row[0]
 
-    def get_spending_by_category(self, category: str) -> tuple[str, int]:
+    def get_spending_by_category(self, category: str) -> tuple[str | int, ...]:
         with get_connection() as connection:
             with connection.cursor() as cursor:
                 cursor.execute(
@@ -307,3 +309,32 @@ class PostgresStorage:
                 totals = cursor.fetchall()
 
         return totals
+
+    def add_salary(self, salary: Salary, user_id: int) -> tuple[int, ...]:
+        with get_connection() as connection:
+            with connection.cursor() as cursor:
+                try:
+                    cursor.execute(
+                        """
+                        INSERT INTO salaries (user_id, amount, month, year)
+                        VALUES (%s, %s, %s, %s)
+                        RETURNING salary_id, amount, month, year;
+                        """,
+                        (
+                            user_id,
+                            salary.amount,
+                            salary.month,
+                            salary.year,
+                        ),
+                    )
+                except psycopg.errors.UniqueViolation:
+                    raise ValueError(
+                        f"You've already added a salary for {salary.month}/{salary.year}. Did you mean to update it instead?"
+                    )
+
+                row = cursor.fetchone()
+
+                if row is None:
+                    raise RuntimeError(f"Failed to add salary: {salary}")
+
+                return row
