@@ -1,6 +1,7 @@
 from database.connection import get_connection
 from models.expense import Expense
 from models.salary import Salary
+from models.budget import Budget
 from datetime import date
 import psycopg
 
@@ -427,3 +428,57 @@ class PostgresStorage:
                 row = cursor.fetchone()
 
                 return row is not None
+
+    def add_budget(self, user_id: int, budget: Budget) -> Budget:
+        with get_connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT category_id
+                    FROM categories
+                    WHERE name  = %s
+                    """,
+                    (budget.category,),
+                )
+
+                category_id = cursor.fetchone()
+
+                if category_id is None:
+                    raise RuntimeError(
+                        f"Failed to fetch category id of: {budget.category}"
+                    )
+
+                try:
+                    cursor.execute(
+                        """
+                        INSERT INTO budgets (user_id, category_id, amount, month, year)
+                        VALUES(%s, %s, %s, %s, %s)
+                        RETURNING budget_id, category_id, amount, month, year
+                        """,
+                        (
+                            user_id,
+                            category_id[0],
+                            budget.amount,
+                            budget.month,
+                            budget.year,
+                        ),
+                    )
+                except psycopg.errors.UniqueViolation:
+                    raise ValueError(
+                        f"You've already added a budget for {budget.category} in {budget.month}/{budget.year}. Did you mean to update it instead?"
+                    )
+
+                row = cursor.fetchone()
+
+                if row is None:
+                    raise ValueError(
+                        f"Failed to add budget: {budget}. Please try again"
+                    )
+
+                return Budget(
+                    category=budget.category,
+                    amount=row[2],
+                    month=row[3],
+                    year=row[4],
+                    budget_id=row[0],
+                )
