@@ -411,3 +411,19 @@ class PostgresStorage:
                     year=row[3],
                     salary_id=row[0],
                 )
+
+    def delete_salary(self, salary_id: int) -> bool:
+        with get_connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    DELETE FROM salaries
+                    WHERE salary_id = %s
+                    RETURNING salary_id
+                    """,
+                    (salary_id,),
+                )
+
+                row = cursor.fetchone()
+
+                return row is not None
