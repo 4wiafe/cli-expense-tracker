@@ -385,3 +385,29 @@ class PostgresStorage:
                 year=row[3],
                 salary_id=row[0],
             )
+
+    def get_salary(self, salary_id: int) -> Salary:
+        with get_connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT salary_id, amount, month, year
+                    FROM salaries
+                    WHERE salary_id = %s
+                    """,
+                    (salary_id,),
+                )
+
+                row = cursor.fetchone()
+
+                if row is None:
+                    raise RuntimeError(
+                        f"Failed to fetch the salary with id: {salary_id}"
+                    )
+
+                return Salary(
+                    amount=row[1],
+                    month=row[2],
+                    year=row[3],
+                    salary_id=row[0],
+                )
