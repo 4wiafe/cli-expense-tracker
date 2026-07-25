@@ -178,7 +178,7 @@ class PostgresStorage:
                     """
                     DELETE FROM expenses
                     WHERE expense_id = %s
-                    RETURNING expense_id
+                    RETURNING expense_id;
                     """,
                     (expense_id,),
                 )
@@ -394,7 +394,7 @@ class PostgresStorage:
                     """
                     SELECT salary_id, amount, month, year
                     FROM salaries
-                    WHERE salary_id = %s
+                    WHERE salary_id = %s;
                     """,
                     (salary_id,),
                 )
@@ -420,7 +420,7 @@ class PostgresStorage:
                     """
                     DELETE FROM salaries
                     WHERE salary_id = %s
-                    RETURNING salary_id
+                    RETURNING salary_id;
                     """,
                     (salary_id,),
                 )
@@ -436,7 +436,7 @@ class PostgresStorage:
                     """
                     SELECT category_id
                     FROM categories
-                    WHERE name  = %s
+                    WHERE name  = %s;
                     """,
                     (budget.category,),
                 )
@@ -453,7 +453,7 @@ class PostgresStorage:
                         """
                         INSERT INTO budgets (user_id, category_id, amount, month, year)
                         VALUES(%s, %s, %s, %s, %s)
-                        RETURNING budget_id, category_id, amount, month, year
+                        RETURNING budget_id, category_id, amount, month, year;
                         """,
                         (
                             user_id,
@@ -481,4 +481,75 @@ class PostgresStorage:
                     month=row[3],
                     year=row[4],
                     budget_id=row[0],
+                )
+
+    def update_budget(self, budget_id: int, updates: dict[str, int]) -> Budget:
+        allowed_fields = {"category", "amount", "month", "year"}
+
+        if not updates:
+            raise ValueError(f"Updates cannot be empty: {updates}")
+
+        for field in updates:
+            if field not in allowed_fields:
+                raise ValueError(f"Invalid update field: {field}")
+
+        set_clauses = []
+        values = []
+
+        with get_connection() as connection:
+            with connection.cursor() as cursor:
+                for field, value in updates.items():
+                    if field == "category":
+                        cursor.execute(
+                            """
+                            SELECT category_id
+                            FROM categories
+                            WHERE name = %s;
+                            """,
+                            (value,),
+                        )
+
+                        category_id = cursor.fetchone()
+
+                        if category_id is None:
+                            raise ValueError(f"Failed to fetch category id for {field}")
+
+                        set_clauses.append(f"category_id = %s")
+                        values.append(category_id[0])
+                        continue
+
+                    set_clauses.append(f"{field} = %s")
+                    values.append(value)
+
+                set_clause = ", ".join(set_clauses)
+                values.append(budget_id)
+
+                try:
+                    cursor.execute(
+                        f"""
+                        UPDATE budgets as b
+                        SET {set_clause}
+                        FROM categories as c
+                        WHERE b.budget_id = %s
+                            AND c.category_id = b.category_id
+                        RETURNING b.budget_id, c.name, b.amount, b.month, b.year
+                        """,
+                        values,
+                    )
+                except psycopg.errors.UniqueViolation:
+                    raise ValueError(
+                        "The budget you tried to upadte has duplicate data. Please try again"
+                    )
+
+                row = cursor.fetchone()
+
+                if row is None:
+                    raise ValueError("Failed to update budget. Please try again")
+
+                return Budget(
+                    budget_id=row[0],
+                    category=row[1],
+                    amount=row[2],
+                    month=row[3],
+                    year=row[4],
                 )
