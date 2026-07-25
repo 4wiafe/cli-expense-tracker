@@ -532,7 +532,7 @@ class PostgresStorage:
                         FROM categories as c
                         WHERE b.budget_id = %s
                             AND c.category_id = b.category_id
-                        RETURNING b.budget_id, c.name, b.amount, b.month, b.year
+                        RETURNING b.budget_id, c.name, b.amount, b.month, b.year;
                         """,
                         values,
                     )
@@ -545,6 +545,32 @@ class PostgresStorage:
 
                 if row is None:
                     raise ValueError("Failed to update budget. Please try again")
+
+                return Budget(
+                    budget_id=row[0],
+                    category=row[1],
+                    amount=row[2],
+                    month=row[3],
+                    year=row[4],
+                )
+
+    def get_budget(self, budget_id: int) -> Budget:
+        with get_connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT b.budget_id, c.name, b.amount, b.month, b.year
+                    FROM budgets as b
+                    JOIN categories as c ON c.category_id = b.category_id
+                    WHERE b.budget_id = %s
+                    """,
+                    (budget_id,),
+                )
+
+                row = cursor.fetchone()
+
+                if row is None:
+                    raise ValueError("Failed to fetch budget. Please try again")
 
                 return Budget(
                     budget_id=row[0],
