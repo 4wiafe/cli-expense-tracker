@@ -579,3 +579,19 @@ class PostgresStorage:
                     month=row[3],
                     year=row[4],
                 )
+
+    def delete_budget(self, budget_id: int) -> bool:
+        with get_connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    DELETE FROM budgets
+                    WHERE budget_id = %s
+                    RETURNING budget_id
+                    """,
+                    (budget_id,),
+                )
+
+                row = cursor.fetchone()
+
+                return row is not None
