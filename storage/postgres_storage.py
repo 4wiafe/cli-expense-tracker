@@ -539,7 +539,7 @@ class PostgresStorage:
                     )
                 except psycopg.errors.UniqueViolation:
                     raise ValueError(
-                        "The budget you tried to upadte has duplicate data. Please try again"
+                        "The budget you tried to update has duplicate data. Please try again"
                     )
 
                 row = cursor.fetchone()
@@ -674,6 +674,54 @@ class PostgresStorage:
                 if row is None:
                     raise RuntimeError(
                         f"Failed to fetch user with id {user_id}. Please try again."
+                    )
+
+                return row
+
+    def update_user(
+        self, user_id: int, updates: dict[str, str | int]
+    ) -> tuple[str | int, ...]:
+        allowed_fields = {"name", "email", "contact"}
+
+        if not updates:
+            raise ValueError(f"Updates cannot be empty: {updates}")
+
+        for field in updates:
+            if field not in allowed_fields:
+                raise ValueError(f"Invalid update field: {field}")
+
+        set_clauses = []
+        values = []
+
+        for field, value in updates.items():
+            set_clauses.append(f"{field} = %s")
+            values.append(value)
+
+        set_clause = ", ".join(set_clauses)
+        values.append(user_id)
+
+        with get_connection() as connection:
+            with connection.cursor() as cursor:
+                try:
+                    cursor.execute(
+                        f"""
+                        UPDATE users
+                        SET {set_clause}
+                        WHERE user_id = %s
+                        RETURNING user_id, name, email, contact
+                        """,
+                        values,
+                    )
+                except psycopg.errors.UniqueViolation:
+                    raise ValueError(
+                        "That email is already in use by another account. Please try a different one."
+                    )
+
+                row = cursor.fetchone()
+
+                if row is None:
+                    raise RuntimeError(
+                        "Failed to update user details. Please try again."
                     )
 
                 return row
