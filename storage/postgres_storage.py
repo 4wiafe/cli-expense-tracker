@@ -708,7 +708,7 @@ class PostgresStorage:
                         UPDATE users
                         SET {set_clause}
                         WHERE user_id = %s
-                        RETURNING user_id, name, email, contact
+                        RETURNING user_id, name, email, contact;
                         """,
                         values,
                     )
@@ -725,3 +725,19 @@ class PostgresStorage:
                     )
 
                 return row
+
+    def delete_user(self, user_id: int) -> bool:
+        with get_connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    DELETE FROM users
+                    WHERE user_id = %s
+                    RETURNING user_id;
+                    """,
+                    (user_id,),
+                )
+
+                row = cursor.fetchone()
+
+                return row is not None
