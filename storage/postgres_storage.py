@@ -562,7 +562,7 @@ class PostgresStorage:
                     SELECT b.budget_id, c.name, b.amount, b.month, b.year
                     FROM budgets as b
                     JOIN categories as c ON c.category_id = b.category_id
-                    WHERE b.budget_id = %s
+                    WHERE b.budget_id = %s;
                     """,
                     (budget_id,),
                 )
@@ -587,7 +587,7 @@ class PostgresStorage:
                     """
                     DELETE FROM budgets
                     WHERE budget_id = %s
-                    RETURNING budget_id
+                    RETURNING budget_id;
                     """,
                     (budget_id,),
                 )
@@ -595,3 +595,34 @@ class PostgresStorage:
                 row = cursor.fetchone()
 
                 return row is not None
+
+    def get_budget_spending(self, user_id: int) -> list[tuple]:
+        with get_connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT c.name AS category,
+                        b.amount AS budget,
+                        COALESCE(SUM(e.amount), 0) AS spending,
+                        (b.amount - COALESCE(SUM(e.amount), 0)) AS difference,
+                        CASE
+                            WHEN b.amount >= COALESCE(SUM(e.amount), 0) THEN 'Within Budget'
+                            ELSE 'Over Budget'
+                        END AS flag,
+                        b.month,
+                        b.year
+                    FROM budgets AS b
+                        LEFT JOIN expenses as e ON e.user_id = b.user_id
+                        AND e.category_id = b.category_id
+                        AND EXTRACT(MONTH FROM e.expense_date) = b.month
+                        AND EXTRACT(YEAR FROM e.expense_date) = b.year
+                        LEFT JOIN categories AS c ON c.category_id = b.category_id
+                    WHERE b.user_id = %s
+                    GROUP BY c.name, b.amount, b.month, b.year;
+                    """,
+                    (user_id,),
+                )
+
+                rows = cursor.fetchall()
+
+                return rows
