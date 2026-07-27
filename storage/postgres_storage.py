@@ -2,6 +2,7 @@ from database.connection import get_connection
 from models.expense import Expense
 from models.salary import Salary
 from models.budget import Budget
+from models.user import User
 from datetime import date
 import psycopg
 
@@ -626,3 +627,32 @@ class PostgresStorage:
                 rows = cursor.fetchall()
 
                 return rows
+
+    def add_user(self, user: User) -> tuple[str | int, ...]:
+        with get_connection() as connection:
+            with connection.cursor() as cursor:
+                try:
+                    cursor.execute(
+                        """
+                        INSERT INTO users (name, email, password_hash, contact)
+                        VALUES(%s, %s, %s, %s)
+                        RETURNING user_id, name, email, contact
+                        """,
+                        (
+                            user.name,
+                            user.email,
+                            user.password_hash,
+                            user.contact,
+                        ),
+                    )
+                except psycopg.errors.UniqueViolation:
+                    raise ValueError(
+                        f"User with email {user.email} already exists. Please try again with a different email."
+                    )
+
+                row = cursor.fetchone()
+
+                if row is None:
+                    raise RuntimeError("Failed to add user. Please try again.")
+
+                return row
