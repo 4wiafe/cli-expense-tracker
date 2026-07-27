@@ -636,7 +636,7 @@ class PostgresStorage:
                         """
                         INSERT INTO users (name, email, password_hash, contact)
                         VALUES(%s, %s, %s, %s)
-                        RETURNING user_id, name, email, contact
+                        RETURNING user_id, name, email, contact;
                         """,
                         (
                             user.name,
@@ -654,5 +654,26 @@ class PostgresStorage:
 
                 if row is None:
                     raise RuntimeError("Failed to add user. Please try again.")
+
+                return row
+
+    def get_user(self, user_id: int) -> tuple[str | int, ...]:
+        with get_connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT user_id, name, email, contact
+                    FROM users
+                    WHERE user_id = %s;
+                    """,
+                    (user_id,),
+                )
+
+                row = cursor.fetchone()
+
+                if row is None:
+                    raise RuntimeError(
+                        f"Failed to fetch user with id {user_id}. Please try again."
+                    )
 
                 return row
