@@ -76,7 +76,7 @@ class SalaryStorage:
 
                 except errors.UniqueViolation:
                     raise ValueError(
-                        "The salary you tried to update has duplicate data. Please try again."
+                        "A salary already exists for this month, and year."
                     )
 
                 row = cursor.fetchone()
