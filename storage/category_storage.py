@@ -7,7 +7,7 @@ class CategoryStorage:
             with connection.cursor() as cursor:
                 cursor.execute("""
                     SELECT category_id, category_name
-                    FROM categories
+                    FROM categories;
                     """)
 
                 rows = cursor.fetchall()
