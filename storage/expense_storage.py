@@ -82,7 +82,7 @@ class ExpenseStorage:
 
         return cursor.fetchall()
 
-    def find_expense_by_id(self, expense_id: int, user_id: int) -> tuple:
+    def find_expense_by_id(self, user_id: int, expense_id: int) -> tuple:
         with get_connection() as connection:
             with connection.cursor() as cursor:
                 cursor.execute(
