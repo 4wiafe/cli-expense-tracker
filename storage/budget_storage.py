@@ -104,3 +104,38 @@ class BudgetStorage:
                 deleted = cursor.fetchone()
 
         return deleted is not None
+
+    def get_budget_spending(self, user_id: int) -> list:
+        with get_connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT b.category_id,
+                        b.amount AS budget,
+                        COALESCE(SUM(e.amount), 0) AS spending,
+                        (b.amount - COALESCE(SUM(e.amount), 0)) AS remaining,
+                        CASE
+                            WHEN b.amount >= COALESCE(SUM(e.amount), 0)
+                            THEN 'Within Budget'
+                            ELSE 'Over Budget'
+                        END AS flag,
+                        b.month,
+                        b.year
+                    FROM budgets AS b
+                        LEFT JOIN expenses AS e 
+                        ON e.user_id = b.user_id
+                        AND e.category_id = b.category_id
+                        AND EXTRACT(MONTH FROM e.expense_date) = b.month
+                        AND EXTRACT(YEAR FROM e.expense_date) = b.year
+                    WHERE b.user_id = %s
+                    GROUP BY b.category_id,
+                        b.amount,
+                        b.month,
+                        b.year;
+                    """,
+                    (user_id,),
+                )
+
+                rows = cursor.fetchall()
+
+        return rows
