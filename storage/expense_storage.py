@@ -6,6 +6,8 @@ from psycopg import sql
 
 
 class ExpenseStorage:
+    # CRUD
+
     def add_expense(
         self, user_id: int, category_id: int, expense: Expense
     ) -> tuple[str | int, ...]:
@@ -120,3 +122,105 @@ class ExpenseStorage:
                 )
 
         return cursor.fetchone() is not None
+
+    # REPORTS
+    def get_total_expenses(self, user_id: int) -> int:
+        with get_connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT COALESCE(SUM(amount), 0)
+                    FROM expenses
+                    WHERE user_id = %s;
+                    """,
+                    (user_id,),
+                )
+
+                row = cursor.fetchone()
+                assert row is not None
+
+        return row[0]
+
+    def get_spending_by_category(self, user_id: int, category_id: int) -> tuple:
+        with get_connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT COALESCE(SUM(amount), 0)
+                    FROM expenses
+                    WHERE user_id = %s AND category_id = %s;
+                    """,
+                    (user_id, category_id),
+                )
+
+                row = cursor.fetchone()
+                assert row is not None
+
+        return row
+
+    def get_all_category_spending(self, user_id: int) -> list:
+        with get_connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT category_id, COALESCE(SUM(amount), 0)
+                    FROM expenses
+                    WHERE user_id = %s
+                    GROUP BY category_id;
+                    """,
+                    (user_id,),
+                )
+
+                rows = cursor.fetchall()
+
+        return rows
+
+    def get_highest_spending_category(self, user_id: int) -> list:
+        with get_connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    WITH category_totals AS (
+                        SELECT category_id, COALESCE(SUM(amount), 0) AS total
+                        FROM expenses
+                        WHERE user_id = %s
+                        GROUP BY category_id
+                    )
+                    SELECT category_id, total
+                    FROM category_totals
+                    WHERE total = (
+                        SELECT MAX(total)
+                        FROM category_totals
+                    );
+                    """,
+                    (user_id,),
+                )
+
+                rows = cursor.fetchall()
+
+        return rows
+
+    def get_lowest_spending_category(self, user_id: int) -> list:
+        with get_connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    WITH category_totals AS (
+                        SELECT category_id, COALESCE(SUM(amount), 0) AS total
+                        FROM expenses
+                        WHERE user_id = %s
+                        GROUP BY category_id
+                    )
+                    SELECT category_id, total
+                    FROM category_totals
+                    WHERE total = (
+                        SELECT MIN(total)
+                        FROM category_totals
+                    );
+                    """,
+                    (user_id,),
+                )
+
+                rows = cursor.fetchall()
+
+        return rows
