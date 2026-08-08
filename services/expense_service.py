@@ -86,15 +86,16 @@ class ExpenseService:
         if not updates:
             raise ValueError(f"Updates cannot be empty: {updates}")
 
-        for field in updates:
+        for field, value in updates.items():
             if field not in allowed_fields:
                 raise ValueError(f"Invalid update field: {field}")
 
-        for field, value in updates.items():
             if field == "category":
                 update_data[field] = self.category_service.get_category_id(value)
             elif field == "expense_date":
                 update_data[field] = datetime.strptime(value, "%d-%m-%Y").date()
+            elif field == "amount":
+                update_data[field] = value * 100
             else:
                 update_data[field] = value
 
