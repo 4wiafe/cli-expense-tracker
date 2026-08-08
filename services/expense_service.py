@@ -1,25 +1,79 @@
 from models.expense import Expense
 from datetime import datetime
+from services.category_service import CategoryService
+from storage.expense_storage import ExpenseStorage
 
 
 class ExpenseService:
-    def __init__(self, storage):
+    def __init__(
+        self,
+        storage: ExpenseStorage,
+        category_service: CategoryService,
+    ):
         self.storage = storage
+        self.category_service = category_service
 
     def add_expense(
-        self, category: str, description: str, amount: int, expense_date: str
-    ) -> Expense:
-        normalized_date = datetime.strptime(expense_date, "%d-%m-%Y").date()
-        normalized_category = category.capitalize()
+        self,
+        user_id: int,
+        category: str,
+        description: str,
+        amount: int,
+        date: str,
+    ) -> dict:
+        expense_date = datetime.strptime(date, "%d-%m-%Y").date()
 
-        expense = Expense(normalized_category, description, amount, normalized_date)
+        category_name = category.strip().title()
+        category_id = self.category_service.get_category_id(category_name)
 
-        added_expense = self.storage.add_expense(expense)
+        amount *= 100
 
-        return added_expense
+        expense = Expense(
+            category,
+            description,
+            amount,
+            expense_date,
+        )
 
-    def update_expense(self, expense_id, updates: dict[str, str | int]) -> Expense:
-        normalized_expense_id = int(expense_id.strip())
+        added_expense = self.storage.add_expense(user_id, category_id, expense)
+
+        return {
+            "expense_id": added_expense[0],
+            "category": category_name,
+            "description": added_expense[2],
+            "amount": f"{added_expense[3] / 100:.2f}",
+            "expense_date": added_expense[4].strftime("%d-%m-%Y"),
+        }
+
+    def list_all_expenses(self, user_id: int) -> list:
+        expenses = []
+        fetched_expenses = self.storage.get_all_expenses(user_id)
+
+        for expense in fetched_expenses:
+            expenses.append(
+                {
+                    "expense_id": expense[0],
+                    "category": self.category_service.get_category_name(expense[1]),
+                    "description": expense[2],
+                    "amount": f"{expense[3] / 100:.2f}",
+                    "expense_date": expense[4].strftime("%d-%m-%Y"),
+                }
+            )
+
+        return expenses
+
+    def find_expense_by_id(self, user_id: int, expense_id: int) -> dict:
+        expense = self.storage.find_expense_by_id(user_id, expense_id)
+
+        return {
+            "expense_id": expense[0],
+            "category": self.category_service.get_category_name(expense[1]),
+            "description": expense[2],
+            "amount": f"{expense[3] / 100:.2f}",
+            "expense_date": expense[4].strftime("%d-%m-%Y"),
+        }
+
+    def update_expense(self, user_id: int, expense_id: int, updates: dict) -> dict:
         allowed_fields = {
             "category",
             "description",
@@ -27,39 +81,36 @@ class ExpenseService:
             "expense_date",
         }
 
-        normalized_updates = {}
+        update_data = {}
 
         if not updates:
             raise ValueError(f"Updates cannot be empty: {updates}")
 
-        for field, value in updates.items():
+        for field in updates:
             if field not in allowed_fields:
                 raise ValueError(f"Invalid update field: {field}")
 
-            if field == "amount":
-                if not isinstance(value, (int, str)):
-                    raise ValueError(f"Invalid amount: {value}")
-
-                value = int(value) * 100
+        for field, value in updates.items():
+            if field == "category":
+                update_data[field] = self.category_service.get_category_id(value)
             elif field == "expense_date":
-                if not isinstance(value, (str)):
-                    raise ValueError(f"Invalid date: {value}")
-
-                value = datetime.strptime(value, "%d-%m-%Y").date()
-
-            normalized_updates[field] = value
+                update_data[field] = datetime.strptime(value, "%d-%m-%Y").date()
+            else:
+                update_data[field] = value
 
         updated_expense = self.storage.update_expense(
-            normalized_expense_id, normalized_updates
+            user_id,
+            expense_id,
+            update_data,
         )
 
-        return updated_expense
+        return {
+            "expense_id": updated_expense[0],
+            "category": self.category_service.get_category_name(updated_expense[1]),
+            "description": updated_expense[2],
+            "amount": f"{updated_expense[3] / 100:.2f}",
+            "expense_date": updated_expense[4].strftime("%d-%m-%Y"),
+        }
 
-    def list_expenses(self) -> list[Expense]:
-        return self.storage.get_all_expenses()
-
-    def find_by_id(self, expense_id: int) -> Expense:
-        return self.storage.find_by_id(expense_id)
-
-    def delete_expense(self, expense_id: int) -> Expense:
-        return self.storage.delete_expense(expense_id)
+    def delete_expense(self, user_id: int, expense_id: int) -> bool:
+        return self.storage.delete_expense(user_id, expense_id)
