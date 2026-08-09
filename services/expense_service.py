@@ -22,9 +22,7 @@ class ExpenseService:
         date: str,
     ) -> dict:
         expense_date = datetime.strptime(date, "%d-%m-%Y").date()
-
-        category_name = category.strip().title()
-        category_id = self.category_service.get_category_id(category_name)
+        category_id = self.category_service.get_category_id(category)
 
         amount *= 100
 
@@ -39,7 +37,7 @@ class ExpenseService:
 
         return {
             "expense_id": added_expense[0],
-            "category": category_name,
+            "category": self.category_service.get_category_name(added_expense[1]),
             "description": added_expense[2],
             "amount": f"{added_expense[3] / 100:.2f}",
             "expense_date": added_expense[4].strftime("%d-%m-%Y"),
