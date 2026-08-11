@@ -8,9 +8,7 @@ from psycopg import sql
 class ExpenseStorage:
     # CRUD
 
-    def add_expense(
-        self, user_id: int, category_id: int, expense: Expense
-    ) -> tuple[str | int, ...]:
+    def add_expense(self, user_id: int, category_id: int, expense: Expense) -> tuple:
         with get_connection() as connection:
             with connection.cursor() as cursor:
                 cursor.execute(
@@ -22,7 +20,6 @@ class ExpenseStorage:
                     (
                         user_id,
                         category_id,
-                        expense.category,
                         expense.description,
                         expense.amount,
                         expense.expense_date,
@@ -40,7 +37,7 @@ class ExpenseStorage:
 
     def update_expense(
         self, user_id, expense_id: int, update_data: dict[str, str | int | date]
-    ) -> tuple[str | int, ...]:
+    ) -> tuple:
         set_clause, values = build_set_clause(update_data)
         values.append(user_id)
         values.append(expense_id)
@@ -66,7 +63,7 @@ class ExpenseStorage:
 
         return row
 
-    def get_all_expenses(self, user_id: int) -> list[tuple]:
+    def get_all_expenses(self, user_id: int) -> list:
         with get_connection() as connection:
             with connection.cursor() as cursor:
                 cursor.execute(
