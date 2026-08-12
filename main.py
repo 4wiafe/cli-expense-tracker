@@ -1,4 +1,4 @@
-from interface.cli import run_cli
+from interface.cli import login_or_signup
 
 if __name__ == "__main__":
-    run_cli()
+    login_or_signup()

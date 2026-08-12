@@ -14,10 +14,10 @@ class Reports:
         self.budget_storage = budget_storage
         self.category_service = category_service
 
-    def get_total_expenses(self, user_id: int) -> int:
+    def get_total_expenses(self, user_id: int) -> dict:
         total = self.expense_storage.get_total_expenses(user_id)
 
-        return int(f"{total / 100:.2f}")
+        return {"total spending": f"{total / 100:.2f}"}
 
     def get_spending_by_category(self, user_id: int, category_name: str) -> dict:
         category_id = self.category_service.get_category_id(category_name)
@@ -25,6 +25,8 @@ class Reports:
         fetched_category_id, total = self.expense_storage.get_spending_by_category(
             user_id, category_id
         )
+
+        print(fetched_category_id, total)
 
         return {
             "category_name": self.category_service.get_category_name(
@@ -48,7 +50,7 @@ class Reports:
 
         return all_spending_categories
 
-    def highest_spending_category(self, user_id: int) -> list:
+    def get_highest_spending_category(self, user_id: int) -> list:
         highest_spendings = []
 
         spendings = self.expense_storage.get_highest_spending_category(user_id)
@@ -63,7 +65,7 @@ class Reports:
 
         return highest_spendings
 
-    def lowest_spending_category(self, user_id: int) -> list:
+    def get_lowest_spending_category(self, user_id: int) -> list:
         lowest_spendings = []
 
         spendings = self.expense_storage.get_lowest_spending_category(user_id)

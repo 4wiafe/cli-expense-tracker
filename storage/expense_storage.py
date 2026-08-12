@@ -48,7 +48,7 @@ class ExpenseStorage:
                     sql.SQL("""
                         UPDATE expenses
                         SET {set_clause}
-                        WHERE expense_id = %s AND user_id = %s
+                        WHERE user_id = %s AND expense_id = %s
                         RETURNING expense_id, category_id, description, amount, expense_date;
                         """).format(set_clause=set_clause),
                     values,
@@ -79,7 +79,9 @@ class ExpenseStorage:
                     (user_id,),
                 )
 
-        return cursor.fetchall()
+                rows = cursor.fetchall()
+
+        return rows
 
     def find_expense_by_id(self, user_id: int, expense_id: int) -> tuple:
         with get_connection() as connection:
@@ -113,12 +115,14 @@ class ExpenseStorage:
                     """
                     DELETE FROM expenses
                     WHERE user_id = %s AND expense_id = %s
-                    RETURNNING expense_id;
+                    RETURNING expense_id;
                     """,
                     (user_id, expense_id),
                 )
 
-        return cursor.fetchone() is not None
+                deleted = cursor.fetchone()
+
+        return deleted is not None
 
     # REPORTS
     def get_total_expenses(self, user_id: int) -> int:
@@ -143,11 +147,11 @@ class ExpenseStorage:
             with connection.cursor() as cursor:
                 cursor.execute(
                     """
-                    SELECT COALESCE(SUM(amount), 0)
+                    SELECT %s AS category_id, COALESCE(SUM(amount), 0)
                     FROM expenses
                     WHERE user_id = %s AND category_id = %s;
                     """,
-                    (user_id, category_id),
+                    (category_id, user_id, category_id),
                 )
 
                 row = cursor.fetchone()
